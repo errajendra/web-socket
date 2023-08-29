@@ -1,0 +1,11 @@
+Django
+djangorestframework
+django-cors-headers
+djangorestframework-camel-case
+djangorestframework-simplejwt
+channels
+psycopg2-binary
+python-dotenv
+daphne
+channels-redis
+uvicorn

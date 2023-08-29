@@ -1,0 +1,146 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Example</title>
+</head>
+<body>
+<h1>Video Streaming</h1>
+<video id="videoElement" autoplay></video>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8000/video/room5/');
+        const videoElement = document.getElementById("videoElement");
+
+        socket.onopen = (event) => {
+            console.log('WebSocket connection opened.');
+            socket.send(JSON.stringify({
+
+                "type": "new_user_joined",
+                "from": 1,
+                "user_full_name": "priyanshu"
+
+            }));
+        };
+
+        socket.onmessage = (event) => {
+            // Message from backend
+              const data = JSON.parse(payload.data);
+
+              switch (data.type) {
+                case "new_user_joined":
+                  _this.setState({
+                    usersConnected: data.users_connected
+                  });
+
+                  // If user joined is current user, the user is requested to enable the media devices and offer is created and sent to other user
+                  if (userId === data.from) {
+                    navigator.mediaDevices.getUserMedia({
+                      video: true,
+                      audio: true
+                    }).then(stream => {
+                      _this.setState({ stream: stream });
+                      document.getElementById("localVideo").srcObject = stream;
+                      _this.sendSignalsToAll(userId, stream);
+                    }).catch(error => {
+                      _this.setState({ isVideoRoomAccessible: false });
+                      printFeedback({
+                        type: "error",
+                        feedbackMsg: "you need to enable media devices inorder to use access this room"
+                      });
+                      console.log(error.message);
+                      return;
+                    });
+                  }
+
+                  // Message is send to other user that new user joined
+                  if (userId !== data.from) {
+                    const user = _this.state.usersConnected.find(eachUser => eachUser.user_id === data.from);
+                    printFeedback({
+                      type: "success",
+                      feedbackMsg: `${user.user_full_name} joined this room`
+                    });
+                    console.log(`User No. ${data.from} joined this room`);
+                  }
+                  break;
+
+                // Offer is received here by others who then store it in there state and sends the answer
+                case "sending_offer":
+                  if (data.to === userId) {
+                    console.log("offer_received");
+                    const peer = _this.addPeer(userId, data.from, data.offer, _this.state.stream);
+                    _this.setState(({ peersEstablished }) => {
+                      const user = _this.state.usersConnected.find(eachUser => eachUser.user_id === data.from);
+                      let newPeersList = [...peersEstablished, {
+                        user_id: data.from,
+                        user_full_name: user.user_full_name,
+                        peer: peer
+                      }];
+
+                      // Checks whether the peer with same user id exists in the 'peersEstablished' state, that peer is then removed
+                      const userPeer = _this.state.peersEstablished.find(eachUser => eachUser.user_id === data.from);
+                      if (userPeer) {
+                        const newList = _this.state.peersEstablished.filter(peer => userPeer.user_id !== peer.user_id);
+
+                        newPeersList = [...newList, {
+                          user_id: data.from,
+                          user_full_name: user.user_full_name,
+                          peer: peer
+                        }];
+                      }
+
+                      return {
+                        peersEstablished: newPeersList
+                      };
+                    });
+                  }
+                  break;
+
+                // Answer is received here by the user who just joined
+                case "sending_answer":
+                  if (data.to === userId) {
+                    console.log("answer_received");
+                    const userPeer = _this.state.peersEstablished.find(eachUser => eachUser.user_id === data.from);
+
+                    // Answer is set as remote description
+                    userPeer.peer.signal(data.answer);
+                  }
+
+                  break;
+                case "disconnected":
+                  if (data.from !== userId) {
+                    const user = _this.state.usersConnected.find(eachUser => eachUser.user_id === data.from);
+
+                    // Feedback is sent to users about who just disconnected
+                    if (user) {
+                      console.log(`User No. ${data.from} disconnected`);
+                      printFeedback({
+                        type: "error",
+                        feedbackMsg: `${user.user_full_name} left`
+                      });
+
+                      // Peer associated with the user that just disconnected is destroyed
+                      const userPeer = _this.state.peersEstablished.find(eachUser => eachUser.user_id === data.from);
+                      if (userPeer) {
+                        userPeer.peer.destroy();
+                        const newPeersList = _this.state.peersEstablished.filter(peer => userPeer.user_id !== peer.user_id);
+                        _this.setState({ peersEstablished: newPeersList });
+                      }
+                    }
+                  }
+                  break;
+                default:
+                  break;
+              }
+        };
+
+        socket.onclose = (event) => {
+            console.log('WebSocket connection closed.');
+        };
+
+
+    </script>
+
+</body>
+</html>
+
