@@ -9,7 +9,7 @@
 <video id="videoElement" autoplay></video>
 
     <script>
-        const socket = new WebSocket('ws://localhost:8000/video/room5/');
+        const socket = new WebSocket('wss://astrovideo.wooshelf.com/video/room5/');
         const videoElement = document.getElementById("videoElement");
 
         socket.onopen = (event) => {

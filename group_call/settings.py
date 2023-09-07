@@ -88,7 +88,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "group_call.wsgi.application"
 
-
 # Database
 if DEBUG:
     database =  {
@@ -136,6 +135,9 @@ USE_TZ = True
 
 
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+PROJECT_ROOT=os.path.dirname(os.path.abspath(__file__))
+STATIC_ROOT=os.path.join(PROJECT_ROOT,'static')
 
 # ADDED CUSTOM CONFIGURATION
 if DEBUG:

@@ -29,8 +29,8 @@ class VideoConsumer(AsyncWebsocketConsumer):
         )
 
         # User data is cleared and discarded from the room
-        # user = self.find_user(self.user_id)
-        # self.USERS_CONNECTED.remove(user)
+        user = self.find_user(self.user_id)
+        self.USERS_CONNECTED.remove(user)
         await (self.channel_layer.group_discard)(
             self.room_group_name, self.channel_name
         )
@@ -138,6 +138,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "disconnected",
                     "from": data["from"],
+                    "users": data["user_connected"],
                 }
             )
         )
