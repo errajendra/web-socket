@@ -113,6 +113,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
                     "from": data["from"],
                     "to": data["to"],
                     "offer": data["offer"],
+                    "users_connected": data["users_connected"],
                 }
             )
         )
@@ -138,7 +139,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "disconnected",
                     "from": data["from"],
-                    "users": data["user_connected"],
+                    "users_connected": data["users_connected"],
                 }
             )
         )
