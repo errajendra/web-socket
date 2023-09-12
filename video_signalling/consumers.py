@@ -16,6 +16,8 @@ class VideoConsumer(AsyncWebsocketConsumer):
         self.room_group_name = "room_%s" % self.room_name
         await (self.channel_layer.group_add)(self.room_group_name, self.channel_name)
         await self.accept()
+        self.all_messages = []
+        self.all_talks = []
 
     async def disconnect(self, close_code):
 
@@ -38,8 +40,28 @@ class VideoConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
 
+        if data["type"] == "message":
+            #text_data_json = json.loads(text_data)
+            message = data['chat']
+            self.all_messages.append(message)
+            # Send the received message back to the client
+            await self.send(text_data=json.dumps({
+                'type': 'message',
+                'chat': self.all_messages
+            }))
+
+        elif data["type"] == "talk_to_astrolger":
+            #text_data_json = json.loads(text_data)
+            recent_talk = data['talk_to_astrolger']
+            self.all_talks.append(recent_talk)
+            # Send the received message back to the client
+            await self.send(text_data=json.dumps({
+                'type': 'talk_to_astrolger',
+                'talk_to_astrologer': self.all_talks
+            }))
+
         # Checks user is valide user or not and added to USER_CONNECTED
-        if data["type"] == "new_user_joined":
+        elif data["type"] == "new_user_joined":
 
             # jwt_authenticate = JWTAuthentication()
             # try:
@@ -55,7 +77,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
             # All the users is notified about new user joining
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {
+                {talk_to_astrolger
                     "type": "new_user_joined",
                     "data": data,
                 },
@@ -113,7 +135,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
                     "from": data["from"],
                     "to": data["to"],
                     "offer": data["offer"],
-                    "users_connected": data["users_connected"],
+                    #"users_connected": data["users_connected"],
                 }
             )
         )
@@ -139,7 +161,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "disconnected",
                     "from": data["from"],
-                    "users_connected": data["users_connected"],
+                    #"users_connected": data["users_connected"],
                 }
             )
         )
