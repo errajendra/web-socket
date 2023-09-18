@@ -8,6 +8,8 @@ class VideoConsumer(AsyncWebsocketConsumer):
 
     # Users stored here temporarily
     USERS_CONNECTED = []
+    all_messages = {}
+    all_talks = []
 
     async def connect(self):
 
@@ -16,8 +18,11 @@ class VideoConsumer(AsyncWebsocketConsumer):
         self.room_group_name = "room_%s" % self.room_name
         await (self.channel_layer.group_add)(self.room_group_name, self.channel_name)
         await self.accept()
-        self.all_messages = []
-        self.all_talks = []
+        if self.room_group_name not in self.all_messages:
+            self.all_messages[self.room_group_name] = []
+        else:
+            await self.send(text_data=json.dumps({"type":"message", "chat": self.all_messages[self.room_group_name]}))
+        #self.all_talks = []
 
     async def disconnect(self, close_code):
 
@@ -26,7 +31,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "disconnected",
-                "data": {"from": self.user_id},
+                "data": {"from": self.user_id, "user_name": self.user_full_name},
             },
         )
 
@@ -43,13 +48,14 @@ class VideoConsumer(AsyncWebsocketConsumer):
         if data["type"] == "message":
             #text_data_json = json.loads(text_data)
             message = data['chat']
-            self.all_messages.append(message)
+            self.all_messages[self.room_group_name].append(message)
+            data['chat'] = self.all_messages[self.room_group_name]
             # Send the received message back to the client
-            await self.send(text_data=json.dumps({
-                'type': 'message',
-                'chat': self.all_messages
-            }))
-
+            await self.channel_layer.group_send(self.room_group_name, {"type":"message", "data": data })
+        elif data["type"] == "end":
+            if self.room_group_name in self.all_messages:
+                self.all_messages[self.room_group_name] = []
+                self.USERS_CONNECTED = []
         elif data["type"] == "talk_to_astrolger":
             #text_data_json = json.loads(text_data)
             recent_talk = data['talk_to_astrolger']
@@ -61,7 +67,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
             }))
 
         # Checks user is valide user or not and added to USER_CONNECTED
-        elif data["type"] == "new_user_joined":
+        if data["type"] == "new_user_joined":
 
             # jwt_authenticate = JWTAuthentication()
             # try:
@@ -69,6 +75,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
             # except:
             #     self.close()
             self.user_id = data["from"]
+            self.user_full_name = data["user_full_name"]
             self.USERS_CONNECTED.append(
                 {"user_id": data["from"], "user_full_name": data["user_full_name"]}
             )
@@ -77,7 +84,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
             # All the users is notified about new user joining
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {talk_to_astrolger
+                {
                     "type": "new_user_joined",
                     "data": data,
                 },
@@ -112,6 +119,12 @@ class VideoConsumer(AsyncWebsocketConsumer):
                     "data": data,
                 },
             )
+
+    async def message(self, event):
+        data = event["data"]
+        await self.send(
+            json.dumps({"type":"message", "chat": data["chat"]})
+        )
 
     # FUNCTIONS FOR THE GROUP SEND METHOD ABOVE...
     async def new_user_joined(self, event):
@@ -161,6 +174,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "disconnected",
                     "from": data["from"],
+                    "user_name": data["user_name"]
                     #"users_connected": data["users_connected"],
                 }
             )
