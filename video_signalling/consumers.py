@@ -148,7 +148,7 @@ class VideoConsumer(AsyncWebsocketConsumer):
                     "from": data["from"],
                     "to": data["to"],
                     "offer": data["offer"],
-                    #"users_connected": data["users_connected"],
+                    "users_connected": data["users_connected"],
                 }
             )
         )
