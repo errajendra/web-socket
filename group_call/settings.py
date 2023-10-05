@@ -138,7 +138,16 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 PROJECT_ROOT=os.path.dirname(os.path.abspath(__file__))
 STATIC_ROOT=os.path.join(PROJECT_ROOT,'static')
+# Allow all origins for simplicity. Update with specific origins as needed.
+#CORS_ALLOWED_ORIGINS = [
+#    "*",  # Replace with your frontend's URL
+#]
 
+# Allow specific HTTP methods (e.g., 'GET', 'POST') in CORS requests
+#CORS_ALLOW_METHODS = [
+#    'GET',
+#    'POST',
+#]
 # ADDED CUSTOM CONFIGURATION
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
